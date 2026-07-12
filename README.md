@@ -39,7 +39,6 @@ The client side (teleop/record/eval) needs nothing from this package:
 
 Calibration files live under
 `~/.cache/huggingface/lerobot/calibration/robots/lekiwi_pincopen/`.
-Coming from stock `lekiwi`: copy that folder once.
 
 ## Tuning
 
