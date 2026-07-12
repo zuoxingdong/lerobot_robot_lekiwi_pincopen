@@ -8,7 +8,9 @@ I wrote up the hardware build in
 [Mobile Manipulation with LeKiwi + PincOpen](https://huggingface.co/blog/zuoxingdong/mobile-manipulation-lekiwi-pincopen).
 This package is that integration as installable code.
 
-![PincOpen gripper next to the LeKiwi](https://huggingface.co/datasets/zuoxingdong/lekiwi-blog-assets/resolve/main/20260418_112225.jpg)
+[![PincOpen LeKiwi running an autonomous SmolVLA rollout, click to play](https://huggingface.co/datasets/zuoxingdong/lekiwi-blog-assets/resolve/main/readme-poster-eval_smolvla_130ep_40k_rtc.jpg)](https://huggingface.co/datasets/zuoxingdong/lekiwi-blog-assets/resolve/main/eval_smolvla_130ep_40k_rtc.mp4)
+
+*▶ click for the clip: autonomous SmolVLA rollout, pick up the snack and drop it in the basket*
 
 **vs stock `lekiwi`:**
 
