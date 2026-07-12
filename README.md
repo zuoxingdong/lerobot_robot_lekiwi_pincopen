@@ -1,8 +1,10 @@
 # lerobot_robot_lekiwi_pincopen
 
-My LeKiwi runs STS3250 servos on the four big arm joints and a PincOpen gripper.
-This plugin lets a **stock [LeRobot](https://github.com/huggingface/lerobot)
-install (0.5.x / 0.6.x) drive that hardware**, zero source edits.
+My LeKiwi runs STS3250 servos on the four big arm joints and a
+[PincOpen](https://github.com/pollen-robotics/PincOpen) gripper.
+This plugin lets the **original, unmodified
+[LeRobot](https://github.com/huggingface/lerobot) (0.5.x / 0.6.x) drive that
+hardware**, zero source edits.
 
 I wrote up the hardware build in
 [Mobile Manipulation with LeKiwi + PincOpen](https://huggingface.co/blog/zuoxingdong/mobile-manipulation-lekiwi-pincopen).
@@ -10,9 +12,9 @@ This package is that integration as installable code.
 
 [![PincOpen LeKiwi running an autonomous SmolVLA rollout, click to play](https://huggingface.co/datasets/zuoxingdong/lekiwi-blog-assets/resolve/main/readme-poster-eval_smolvla_130ep_40k_rtc.jpg)](https://huggingface.co/datasets/zuoxingdong/lekiwi-blog-assets/resolve/main/eval_smolvla_130ep_40k_rtc.mp4)
 
-*▶ click for the clip: autonomous SmolVLA rollout, pick up the snack and drop it in the basket*
+*▶ click for the clip: autonomous SmolVLA rollout, pick up the chocolate bar from the basket and place it on the ground*
 
-**vs stock `lekiwi`:**
+**vs the original `lekiwi` robot:**
 
 - arm joints 1-4 on **STS3250** (wrist_roll and gripper stay STS3215)
 - **PincOpen gripper**: fixed EPROM calibration, skipped during interactive calibration
@@ -34,7 +36,7 @@ LeRobot auto-discovers the plugin by its package name (the official
 # calibrate (gripper is skipped, its EPROM calibration is applied)
 lerobot-calibrate --robot.type=lekiwi_pincopen --robot.id=my_lekiwi
 
-# host (stock lekiwi_host skips plugin discovery, hence the wrapper; same CLI, same yaml)
+# host (the original lekiwi_host skips plugin discovery, hence the wrapper; same CLI, same yaml)
 python -m lerobot_robot_lekiwi_pincopen.lekiwi_host --config_path=host.yaml
 ```
 
@@ -56,7 +58,7 @@ Calibration files live under
 | `gripper_protective_torque` | 5 (percent) |
 | `gripper_protection_time` | 7 (x10 ms) |
 
-**P=10 on the big joints is the load-bearing fix.** Stock writes P=16, which gave me
+**P=10 on the big joints is the load-bearing fix.** The original writes P=16, which gave me
 jitter and servo overload shutdowns on this hardware.
 
 ## Tests
