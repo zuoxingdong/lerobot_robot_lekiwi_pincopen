@@ -6,6 +6,11 @@ a PincOpen gripper with a fixed EPROM calibration, and tuned servo parameters.
 Identical hardware behavior to a patched lerobot tree, with zero lerobot source
 edits — a stock lerobot install (0.5.x or 0.6.x) drives the robot out of the box.
 
+The hardware itself — mounting a PincOpen gripper on a LeKiwi and what it took to
+make the combination reliable — is covered in the blog post
+[Mobile Manipulation with LeKiwi + PincOpen](https://huggingface.co/blog/zuoxingdong/mobile-manipulation-lekiwi-pincopen);
+this package is that integration distilled into an installable plugin.
+
 What it changes vs the stock `lekiwi` robot:
 
 - arm joints 1-4 run STS3250 motors (wrist_roll and gripper stay STS3215)
@@ -71,8 +76,10 @@ Everything stops short of `bus.connect()`: no robot, no motors, no cameras neede
 
 ## Related
 
-[lekiwi-tui](https://github.com/zuoxingdong/lekiwi-tui) is a terminal control center
-for the LeKiwi workflow that ships and drives this plugin automatically.
+- [Mobile Manipulation with LeKiwi + PincOpen](https://huggingface.co/blog/zuoxingdong/mobile-manipulation-lekiwi-pincopen)
+  — the hardware integration story behind this plugin
+- [lekiwi-tui](https://github.com/zuoxingdong/lekiwi-tui) — a terminal control center
+  for the LeKiwi workflow that ships and drives this plugin automatically
 
 ## License
 
