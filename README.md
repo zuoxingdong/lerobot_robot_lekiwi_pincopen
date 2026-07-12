@@ -8,6 +8,8 @@ I wrote up the hardware build in
 [Mobile Manipulation with LeKiwi + PincOpen](https://huggingface.co/blog/zuoxingdong/mobile-manipulation-lekiwi-pincopen).
 This package is that integration as installable code.
 
+![PincOpen gripper next to the LeKiwi](https://huggingface.co/datasets/zuoxingdong/lekiwi-blog-assets/resolve/main/20260418_112225.jpg)
+
 **vs stock `lekiwi`:**
 
 - arm joints 1-4 on **STS3250** (wrist_roll and gripper stay STS3215)
