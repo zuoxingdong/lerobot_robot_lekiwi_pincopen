@@ -46,6 +46,36 @@ The client side (teleop/record/eval) needs nothing from this package:
 Calibration files live under
 `~/.cache/huggingface/lerobot/calibration/robots/lekiwi_pincopen/`.
 
+## Optional: sprung gripper trigger for the SO-101 leader
+
+The package also ships `--teleop.type=so101_leader_sprung`: a stock SO-101
+leader whose gripper trigger pushes back progressively when squeezed and
+springs back to fully open when released — the SO-arm analogue of the Koch
+leader's current-based-position trigger, emulated in the STS3215's position
+mode (soft P gain + low torque cap). Works with any SO-101/SO-100 leader, not
+just PincOpen setups.
+
+```yaml
+teleop:
+  type: so101_leader_sprung
+  port: /dev/ttyACM0
+  id: my_leader
+  # calibration files are stored per teleoperator type; reuse an existing
+  # so101_leader calibration instead of recalibrating:
+  calibration_dir: ~/.cache/huggingface/lerobot/calibration/teleoperators/so101_leader
+```
+
+Notes:
+
+* Position reads are unchanged — recorded gripper actions are identical apart
+  from a consistent open rest position between grasps.
+* The spring's `P_Coefficient` write persists in the servo's EPROM (harmless;
+  the servo behaves identically when used as a stock passive leader, since
+  torque is off outside this teleoperator).
+* Hand-tuned on real hardware; holding the trigger fully squeezed for 8
+  continuous minutes raised the servo temperature by 1 °C, and the factory
+  overload protection stays armed above the configured torque cap.
+
 ## Tuning
 
 | Field | Default |

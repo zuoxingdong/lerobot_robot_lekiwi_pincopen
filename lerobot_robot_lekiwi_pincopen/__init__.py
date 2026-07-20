@@ -33,14 +33,22 @@ How it plugs in (works on lerobot 0.5.x and 0.6.x):
 
 The teleoperating/recording client side is untouched: those CLIs talk to
 ``lekiwi_client``, which never touches motors.
+
+The package also ships an optional leader-side teleoperator,
+``--teleop.type=so101_leader_sprung`` — a stock SO-101 leader whose gripper
+trigger springs back to open when released (see ``so101_leader_sprung.py``).
 """
 
 from .config_lekiwi_pincopen import PincOpenLeKiwiConfig
+from .config_so101_leader_sprung import SprungSO101LeaderConfig
 from .lekiwi_pincopen import PINCOPEN_CALIBRATION, STS3250_JOINTS, PincOpenLeKiwi
+from .so101_leader_sprung import SprungSO101Leader
 
 __all__ = [
     "PincOpenLeKiwi",
     "PincOpenLeKiwiConfig",
     "PINCOPEN_CALIBRATION",
     "STS3250_JOINTS",
+    "SprungSO101Leader",
+    "SprungSO101LeaderConfig",
 ]
