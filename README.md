@@ -20,6 +20,9 @@ This package is that integration as installable code.
 - **PincOpen gripper**: fixed EPROM calibration, skipped during interactive calibration
 - **tuned servo params** written on every connect, all exposed as config fields:
   tuning is a yaml/CLI edit (`--robot.heavy_p_coefficient=10`), never a code change
+- **camera capture pinned to MJPG** — the stock default sets no `fourcc`, so
+  OpenCV auto-negotiates uncompressed YUYV (~147 Mbps/camera) and saturates the
+  Pi's USB2 bus; MJPG is ~16× lighter for identical frames
 
 ## Install
 

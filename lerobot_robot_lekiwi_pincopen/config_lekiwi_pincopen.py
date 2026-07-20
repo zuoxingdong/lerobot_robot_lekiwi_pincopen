@@ -14,15 +14,27 @@
 
 """Configuration for the PincOpen LeKiwi (``--robot.type=lekiwi_pincopen``)."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field, replace
 
+from lerobot.cameras import CameraConfig
 from lerobot.robots import RobotConfig
-from lerobot.robots.lekiwi.config_lekiwi import LeKiwiConfig
+from lerobot.robots.lekiwi.config_lekiwi import LeKiwiConfig, lekiwi_cameras_config
+
+
+def pincopen_cameras_config() -> dict[str, CameraConfig]:
+    # Pin MJPG on the inherited LeKiwi defaults. Without a fourcc, OpenCV
+    # auto-negotiates uncompressed YUYV (~147 Mbps/camera on the Pi's shared
+    # USB2 bus) when the camera offers it, which silently caps the frame rate.
+    # (Upstream fix proposed in huggingface/lerobot; this keeps the plugin
+    # correct on stock lerobot until then.)
+    return {name: replace(cfg, fourcc="MJPG") for name, cfg in lekiwi_cameras_config().items()}
 
 
 @RobotConfig.register_subclass("lekiwi_pincopen")
 @dataclass
 class PincOpenLeKiwiConfig(LeKiwiConfig):
+    cameras: dict[str, CameraConfig] = field(default_factory=pincopen_cameras_config)
+
     # Servo tuning, applied by configure() on every connect. Lowering the P-gain on
     # the four big joints is the critical fix against jitter and servo overload
     # shutdowns; stock lerobot writes P=16 arm-wide.
