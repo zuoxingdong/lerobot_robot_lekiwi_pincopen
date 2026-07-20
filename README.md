@@ -61,8 +61,9 @@ teleop:
   port: /dev/ttyACM0
   id: my_leader
   # calibration files are stored per teleoperator type; reuse an existing
-  # so101_leader calibration instead of recalibrating:
-  calibration_dir: ~/.cache/huggingface/lerobot/calibration/teleoperators/so101_leader
+  # so101_leader calibration instead of recalibrating. Use an ABSOLUTE path:
+  # lerobot does not expand `~` in calibration_dir.
+  calibration_dir: /home/<you>/.cache/huggingface/lerobot/calibration/teleoperators/so101_leader
 ```
 
 Notes:
