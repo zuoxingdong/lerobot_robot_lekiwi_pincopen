@@ -59,8 +59,8 @@ class PincOpenLeKiwiLeader(Teleoperator):
         # (``<calibration_dir>/<id>.json``) and force a pointless recalibration.
         #
         # Copy whatever the installed lerobot's SOLeaderConfig carries rather than naming
-        # each field: 0.5.x, 0.6.x and main differ (`num_read_retries` only exists on newer
-        # versions), and the plugin supports all of them.
+        # each field: the set grows between releases (`num_read_retries` postdates 0.6.x),
+        # and naming them here would silently drop a field the user had set.
         arm_config = SprungSO101LeaderConfig(
             id=config.id,
             calibration_dir=config.calibration_dir,

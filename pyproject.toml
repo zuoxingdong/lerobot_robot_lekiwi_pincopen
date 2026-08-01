@@ -23,10 +23,10 @@ classifiers = [
     "Programming Language :: Python :: 3",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
-# Works against lerobot 0.5.x and 0.6.x; the lekiwi extra brings the servo SDK the
-# bus needs plus pyzmq for the host. In an env that already carries an (editable)
-# lerobot clone this resolves as already-satisfied.
-dependencies = ["lerobot[lekiwi]>=0.5.2"]
+# Requires lerobot 0.6.0 or newer; the lekiwi extra brings the servo SDK the bus needs
+# plus pyzmq for the host. In an env that already carries an (editable) lerobot clone
+# this resolves as already-satisfied.
+dependencies = ["lerobot[lekiwi]>=0.6.0"]
 
 [project.optional-dependencies]
 dev = [
@@ -43,3 +43,23 @@ include = ["lerobot_robot_lekiwi_pincopen*"]
 [tool.ruff]
 target-version = "py310"
 line-length = 110
+
+# Select the rule set explicitly. Left implicit, the enabled rules are whatever the
+# installed ruff defaults to, so a new ruff release changes what CI enforces without
+# anything in this repo changing (0.16 widened the defaults and broke a green build).
+[tool.ruff.lint]
+select = [
+    "E4", # imports
+    "E7", # statements
+    "E9", # runtime errors
+    "F",  # pyflakes
+    "I",  # import sorting
+    "RUF", # ruff-specific (sorted __all__, stale noqa, ...)
+]
+
+[tool.ruff.lint.per-file-ignores]
+# The test imports deliberately sit below `pytest.importorskip("lerobot")` so the suite
+# skips cleanly in an env without lerobot. Ruff >=0.7 understands that and treats an
+# inline `noqa: E402` as stale (RUF100), while older ruff still raises E402 without one,
+# so no inline comment satisfies both. Ignoring it here does.
+"tests/*" = ["E402"]

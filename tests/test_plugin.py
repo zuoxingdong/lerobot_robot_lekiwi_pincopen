@@ -16,20 +16,20 @@ import pytest
 
 pytest.importorskip("lerobot")
 
-from lerobot.robots import RobotConfig  # noqa: E402
-from lerobot.robots.lekiwi.config_lekiwi import LeKiwiConfig  # noqa: E402
-from lerobot.robots.utils import make_robot_from_config  # noqa: E402
-from lerobot.utils.import_utils import register_third_party_plugins  # noqa: E402
+from lerobot.robots import RobotConfig
+from lerobot.robots.lekiwi.config_lekiwi import LeKiwiConfig
+from lerobot.robots.lekiwi.lekiwi_host import LeKiwiServerConfig
+from lerobot.robots.utils import make_robot_from_config
+from lerobot.utils.import_utils import register_third_party_plugins
 
-from lerobot_robot_lekiwi_pincopen import (  # noqa: E402
+from lerobot_robot_lekiwi_pincopen import (
     HEAVY_JOINTS,
     PINCOPEN_CALIBRATION,
     STS3250_JOINTS,
     PincOpenLeKiwi,
     PincOpenLeKiwiConfig,
 )
-from lerobot_robot_lekiwi_pincopen.lekiwi_host import PincOpenLeKiwiServerConfig  # noqa: E402
-from lerobot.robots.lekiwi.lekiwi_host import LeKiwiServerConfig  # noqa: E402
+from lerobot_robot_lekiwi_pincopen.lekiwi_host import PincOpenLeKiwiServerConfig
 
 
 def test_distribution_name_matches_discovery_contract():

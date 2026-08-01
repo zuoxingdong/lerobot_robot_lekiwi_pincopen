@@ -3,7 +3,7 @@
 My LeKiwi runs STS3250 servos on the big arm joints and a
 [PincOpen](https://github.com/pollen-robotics/PincOpen) gripper.
 This plugin lets the **original, unmodified
-[LeRobot](https://github.com/huggingface/lerobot) (0.5.x / 0.6.x) drive that
+[LeRobot](https://github.com/huggingface/lerobot) (0.6.0 or newer) drive that
 hardware**, zero source edits.
 
 I wrote up the hardware build in

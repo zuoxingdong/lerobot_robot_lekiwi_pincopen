@@ -19,7 +19,7 @@ PincOpen gripper with a fixed EPROM calibration, and tuned servo parameters —
 packaged out-of-tree, so a stock lerobot install drives the hardware with zero
 source edits.
 
-How it plugs in (works on lerobot 0.5.x and 0.6.x):
+How it plugs in (requires lerobot 0.6.0 or newer):
 
 * Every lerobot CLI calls ``register_third_party_plugins()``, which imports any
   installed distribution named ``lerobot_robot_*``. Importing this package registers
@@ -50,14 +50,14 @@ from .so101_leader_sprung import SprungSO101Leader
 
 __all__ = [
     "HEAVY_JOINTS",
+    "PINCOPEN_CALIBRATION",
+    "STS3250_JOINTS",
     "PincOpenLeKiwi",
     "PincOpenLeKiwiClient",
     "PincOpenLeKiwiClientConfig",
     "PincOpenLeKiwiConfig",
     "PincOpenLeKiwiLeader",
     "PincOpenLeKiwiLeaderConfig",
-    "PINCOPEN_CALIBRATION",
-    "STS3250_JOINTS",
     "SprungSO101Leader",
     "SprungSO101LeaderConfig",
 ]
