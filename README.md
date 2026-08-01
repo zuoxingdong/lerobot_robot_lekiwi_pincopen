@@ -51,6 +51,53 @@ The client side (teleop/record/eval) needs nothing from this package:
 Calibration files live under
 `~/.cache/huggingface/lerobot/calibration/robots/lekiwi_pincopen/`.
 
+## Driving LeKiwi from the record / teleoperate CLIs
+
+LeKiwi is a mobile manipulator, so it takes two devices to drive: a leader arm for
+the arm and a keyboard for the holonomic base. Stock `lerobot-teleoperate` cannot
+express that, and stock `lerobot-record` cannot talk to a LeKiwi client at all. The
+package ships two laptop-side types that close both gaps without patching lerobot:
+
+* `--robot.type=lekiwi_pincopen_client` — the ZMQ client. Stock lerobot never
+  registers `lekiwi_client` in the record/teleoperate scripts, so it is not a
+  selectable choice there; and `LeKiwiClient` exposes no `.cameras`, so recording
+  dies on `len(robot.cameras)` while sizing its image writer. This registers the
+  client and reports the configured cameras.
+* `--teleop.type=lekiwi_pincopen_leader` — one teleoperator wrapping the sprung
+  SO-101 leader plus a keyboard for the base, the way `bi_so_leader` wraps two arms.
+  The CLIs see a single ordinary teleoperator. WASD moves, Z/X rotate, R/F change
+  speed.
+
+```yaml
+robot:
+  type: lekiwi_pincopen_client
+  remote_ip: 192.168.0.42
+  id: my_kiwi
+
+teleop:
+  type: lekiwi_pincopen_leader
+  id: my_leader
+  # See the note below: use an ABSOLUTE path.
+  calibration_dir: /home/<you>/.cache/huggingface/lerobot/calibration/teleoperators/so101_leader
+  arm_config:
+    port: /dev/ttyACM0
+  # Optional; these are the defaults.
+  # teleop_keys: {forward: w, backward: s, left: a, right: d, rotate_left: z, rotate_right: x, speed_up: r, speed_down: f, quit: q}
+  # speed_levels: [{xy: 0.1, theta: 30}, {xy: 0.2, theta: 60}, {xy: 0.3, theta: 90}]
+```
+
+Notes:
+
+* Nothing changes on the robot/host side, so there is no need to redeploy the Pi.
+* The arm keeps the teleoperator's own `id` unsuffixed, so an existing leader
+  calibration keeps resolving. Migrating from `--teleop.type=so101_leader_sprung`
+  is a type swap plus moving `port` under `arm_config`.
+* The keyboard is best effort. `pynput` cannot capture keys on Wayland or on a
+  headless machine; there the base holds still and the arm stays teleoperable
+  rather than the session failing.
+* Both are proposed upstream in
+  [huggingface/lerobot#3741](https://github.com/huggingface/lerobot/pull/3741).
+
 ## Optional: sprung gripper trigger for the SO-101 leader
 
 The package also ships `--teleop.type=so101_leader_sprung`: a stock SO-101

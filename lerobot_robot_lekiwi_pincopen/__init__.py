@@ -40,14 +40,22 @@ trigger springs back to open when released (see ``so101_leader_sprung.py``).
 """
 
 from .config_lekiwi_pincopen import HEAVY_JOINTS, STS3250_JOINTS, PincOpenLeKiwiConfig
+from .config_lekiwi_pincopen_client import PincOpenLeKiwiClientConfig
+from .config_lekiwi_pincopen_leader import PincOpenLeKiwiLeaderConfig
 from .config_so101_leader_sprung import SprungSO101LeaderConfig
 from .lekiwi_pincopen import PINCOPEN_CALIBRATION, PincOpenLeKiwi
+from .lekiwi_pincopen_client import PincOpenLeKiwiClient
+from .lekiwi_pincopen_leader import PincOpenLeKiwiLeader
 from .so101_leader_sprung import SprungSO101Leader
 
 __all__ = [
     "HEAVY_JOINTS",
     "PincOpenLeKiwi",
+    "PincOpenLeKiwiClient",
+    "PincOpenLeKiwiClientConfig",
     "PincOpenLeKiwiConfig",
+    "PincOpenLeKiwiLeader",
+    "PincOpenLeKiwiLeaderConfig",
     "PINCOPEN_CALIBRATION",
     "STS3250_JOINTS",
     "SprungSO101Leader",
