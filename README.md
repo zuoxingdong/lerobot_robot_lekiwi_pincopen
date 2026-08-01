@@ -1,5 +1,8 @@
 # lerobot_robot_lekiwi_pincopen
 
+[![PyPI](https://img.shields.io/pypi/v/lerobot-robot-lekiwi-pincopen)](https://pypi.org/project/lerobot-robot-lekiwi-pincopen/)
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
+
 My LeKiwi runs STS3250 servos on the big arm joints and a
 [PincOpen](https://github.com/pollen-robotics/PincOpen) gripper.
 This plugin lets the **original, unmodified
@@ -29,7 +32,20 @@ This package is that integration as installable code.
 ## Install
 
 ```bash
-pip install -e .
+pip install lerobot_robot_lekiwi_pincopen
+```
+
+That pulls `lerobot[lekiwi]` with it, which brings the Feetech servo SDK the bus needs
+and pyzmq for the host. Requires Python 3.12 or newer, as lerobot does.
+
+Nothing else to wire up: every lerobot CLI calls `register_third_party_plugins()`, which
+imports installed distributions named `lerobot_robot_*`, so the robot and teleoperator
+types below appear in `--robot.type` / `--teleop.type` as soon as the package is present.
+
+To hack on it instead, from a clone:
+
+```bash
+pip install -e ".[dev]"
 ```
 
 ## Use
