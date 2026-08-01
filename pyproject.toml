@@ -10,11 +10,14 @@ build-backend = "setuptools.build_meta"
 # it to hyphens would break discovery.)
 name = "lerobot_robot_lekiwi_pincopen"
 version = "0.1.0"
-description = "PincOpen LeKiwi (STS3250 arm joints + PincOpen gripper) as a LeRobot third-party robot plugin"
+description = "PincOpen LeKiwi (STS3250 heavy arm joints + PincOpen gripper) as a LeRobot third-party robot plugin"
 readme = "README.md"
 license = { text = "Apache-2.0" }
 authors = [{ name = "Xingdong Zuo" }]
-requires-python = ">=3.10"
+# lerobot has required 3.12 since 0.5.0, so with a >=0.6.0 floor this package can never
+# install on 3.10/3.11. Claiming otherwise only turns a clear "requires Python >=3.12"
+# into a confusing resolver failure about lerobot.
+requires-python = ">=3.12"
 keywords = ["lerobot", "robotics", "lekiwi", "plugin", "feetech"]
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -23,10 +26,10 @@ classifiers = [
     "Programming Language :: Python :: 3",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
-# Works against lerobot 0.5.x and 0.6.x; the lekiwi extra brings the servo SDK the
-# bus needs plus pyzmq for the host. In an env that already carries an (editable)
-# lerobot clone this resolves as already-satisfied.
-dependencies = ["lerobot[lekiwi]>=0.5.2"]
+# Requires lerobot 0.6.0 or newer; the lekiwi extra brings the servo SDK the bus needs
+# plus pyzmq for the host. In an env that already carries an (editable) lerobot clone
+# this resolves as already-satisfied.
+dependencies = ["lerobot[lekiwi]>=0.6.0"]
 
 [project.optional-dependencies]
 dev = [
@@ -41,5 +44,25 @@ Repository = "https://github.com/zuoxingdong/lerobot_robot_lekiwi_pincopen"
 include = ["lerobot_robot_lekiwi_pincopen*"]
 
 [tool.ruff]
-target-version = "py310"
+target-version = "py312"
 line-length = 110
+
+# Select the rule set explicitly. Left implicit, the enabled rules are whatever the
+# installed ruff defaults to, so a new ruff release changes what CI enforces without
+# anything in this repo changing (0.16 widened the defaults and broke a green build).
+[tool.ruff.lint]
+select = [
+    "E4", # imports
+    "E7", # statements
+    "E9", # runtime errors
+    "F",  # pyflakes
+    "I",  # import sorting
+    "RUF", # ruff-specific (sorted __all__, stale noqa, ...)
+]
+
+[tool.ruff.lint.per-file-ignores]
+# The test imports deliberately sit below `pytest.importorskip("lerobot")` so the suite
+# skips cleanly in an env without lerobot. Ruff >=0.7 understands that and treats an
+# inline `noqa: E402` as stale (RUF100), while older ruff still raises E402 without one,
+# so no inline comment satisfies both. Ignoring it here does.
+"tests/*" = ["E402"]

@@ -1,9 +1,9 @@
 # lerobot_robot_lekiwi_pincopen
 
-My LeKiwi runs STS3250 servos on the four big arm joints and a
+My LeKiwi runs STS3250 servos on the big arm joints and a
 [PincOpen](https://github.com/pollen-robotics/PincOpen) gripper.
 This plugin lets the **original, unmodified
-[LeRobot](https://github.com/huggingface/lerobot) (0.5.x / 0.6.x) drive that
+[LeRobot](https://github.com/huggingface/lerobot) (0.6.0 or newer) drive that
 hardware**, zero source edits.
 
 I wrote up the hardware build in
@@ -16,7 +16,9 @@ This package is that integration as installable code.
 
 **vs the original `lekiwi` robot:**
 
-- arm joints 1-4 on **STS3250** (wrist_roll and gripper stay STS3215)
+- **STS3250** on the heavy arm joints, set by `sts3250_joints` (default: joints 2-4;
+  shoulder_pan, wrist_roll and gripper are STS3215)
+- **load-based tuning** via `heavy_joints`, independent of which servo is fitted
 - **PincOpen gripper**: fixed EPROM calibration, skipped during interactive calibration
 - **tuned servo params** written on every connect, all exposed as config fields:
   tuning is a yaml/CLI edit (`--robot.heavy_p_coefficient=10`), never a code change
@@ -48,6 +50,53 @@ The client side (teleop/record/eval) needs nothing from this package:
 
 Calibration files live under
 `~/.cache/huggingface/lerobot/calibration/robots/lekiwi_pincopen/`.
+
+## Driving LeKiwi from the record / teleoperate CLIs
+
+LeKiwi is a mobile manipulator, so it takes two devices to drive: a leader arm for
+the arm and a keyboard for the holonomic base. Stock `lerobot-teleoperate` cannot
+express that, and stock `lerobot-record` cannot talk to a LeKiwi client at all. The
+package ships two laptop-side types that close both gaps without patching lerobot:
+
+* `--robot.type=lekiwi_pincopen_client` — the ZMQ client. Stock lerobot never
+  registers `lekiwi_client` in the record/teleoperate scripts, so it is not a
+  selectable choice there; and `LeKiwiClient` exposes no `.cameras`, so recording
+  dies on `len(robot.cameras)` while sizing its image writer. This registers the
+  client and reports the configured cameras.
+* `--teleop.type=lekiwi_pincopen_leader` — one teleoperator wrapping the sprung
+  SO-101 leader plus a keyboard for the base, the way `bi_so_leader` wraps two arms.
+  The CLIs see a single ordinary teleoperator. WASD moves, Z/X rotate, R/F change
+  speed.
+
+```yaml
+robot:
+  type: lekiwi_pincopen_client
+  remote_ip: 192.168.0.42
+  id: my_kiwi
+
+teleop:
+  type: lekiwi_pincopen_leader
+  id: my_leader
+  # See the note below: use an ABSOLUTE path.
+  calibration_dir: /home/<you>/.cache/huggingface/lerobot/calibration/teleoperators/so101_leader
+  arm_config:
+    port: /dev/ttyACM0
+  # Optional; these are the defaults.
+  # teleop_keys: {forward: w, backward: s, left: a, right: d, rotate_left: z, rotate_right: x, speed_up: r, speed_down: f, quit: q}
+  # speed_levels: [{xy: 0.1, theta: 30}, {xy: 0.2, theta: 60}, {xy: 0.3, theta: 90}]
+```
+
+Notes:
+
+* Nothing changes on the robot/host side, so there is no need to redeploy the Pi.
+* The arm keeps the teleoperator's own `id` unsuffixed, so an existing leader
+  calibration keeps resolving. Migrating from `--teleop.type=so101_leader_sprung`
+  is a type swap plus moving `port` under `arm_config`.
+* The keyboard is best effort. `pynput` cannot capture keys on Wayland or on a
+  headless machine; there the base holds still and the arm stays teleoperable
+  rather than the session failing.
+* Both are proposed upstream in
+  [huggingface/lerobot#3741](https://github.com/huggingface/lerobot/pull/3741).
 
 ## Optional: sprung gripper trigger for the SO-101 leader
 

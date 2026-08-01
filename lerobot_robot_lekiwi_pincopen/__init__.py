@@ -14,12 +14,12 @@
 
 """PincOpen LeKiwi — STS3250/PincOpen hardware customizations as a lerobot plugin.
 
-A LeKiwi variant with the arm's four big joints upgraded to STS3250 servos, a
+A LeKiwi variant with the arm's heavy joints upgraded to STS3250 servos, a
 PincOpen gripper with a fixed EPROM calibration, and tuned servo parameters —
 packaged out-of-tree, so a stock lerobot install drives the hardware with zero
 source edits.
 
-How it plugs in (works on lerobot 0.5.x and 0.6.x):
+How it plugs in (requires lerobot 0.6.0 or newer):
 
 * Every lerobot CLI calls ``register_third_party_plugins()``, which imports any
   installed distribution named ``lerobot_robot_*``. Importing this package registers
@@ -31,24 +31,38 @@ How it plugs in (works on lerobot 0.5.x and 0.6.x):
   host is launched through the wrapper module instead (same CLI, same yaml):
   ``python -m lerobot_robot_lekiwi_pincopen.lekiwi_host --config_path=...``
 
-The teleoperating/recording client side is untouched: those CLIs talk to
-``lekiwi_client``, which never touches motors.
+The laptop side is covered too, since stock lerobot cannot reach a LeKiwi from the
+record/teleoperate CLIs: ``lekiwi_client`` is never registered there, and it exposes no
+``.cameras`` for ``record()`` to size its image writer from.
 
-The package also ships an optional leader-side teleoperator,
-``--teleop.type=so101_leader_sprung`` — a stock SO-101 leader whose gripper
-trigger springs back to open when released (see ``so101_leader_sprung.py``).
+* ``--robot.type=lekiwi_pincopen_client`` — the ZMQ client, registered and reporting
+  its configured cameras (see ``lekiwi_pincopen_client.py``).
+* ``--teleop.type=lekiwi_pincopen_leader`` — one teleoperator driving both the arm
+  (sprung SO-101 leader) and the holonomic base (keyboard), so the CLIs see a single
+  device (see ``lekiwi_pincopen_leader.py``).
+* ``--teleop.type=so101_leader_sprung`` — the sprung leader on its own, for a
+  non-LeKiwi SO-101 setup (see ``so101_leader_sprung.py``).
 """
 
-from .config_lekiwi_pincopen import PincOpenLeKiwiConfig
+from .config_lekiwi_pincopen import HEAVY_JOINTS, STS3250_JOINTS, PincOpenLeKiwiConfig
+from .config_lekiwi_pincopen_client import PincOpenLeKiwiClientConfig
+from .config_lekiwi_pincopen_leader import PincOpenLeKiwiLeaderConfig
 from .config_so101_leader_sprung import SprungSO101LeaderConfig
-from .lekiwi_pincopen import PINCOPEN_CALIBRATION, STS3250_JOINTS, PincOpenLeKiwi
+from .lekiwi_pincopen import PINCOPEN_CALIBRATION, PincOpenLeKiwi
+from .lekiwi_pincopen_client import PincOpenLeKiwiClient
+from .lekiwi_pincopen_leader import PincOpenLeKiwiLeader
 from .so101_leader_sprung import SprungSO101Leader
 
 __all__ = [
-    "PincOpenLeKiwi",
-    "PincOpenLeKiwiConfig",
+    "HEAVY_JOINTS",
     "PINCOPEN_CALIBRATION",
     "STS3250_JOINTS",
+    "PincOpenLeKiwi",
+    "PincOpenLeKiwiClient",
+    "PincOpenLeKiwiClientConfig",
+    "PincOpenLeKiwiConfig",
+    "PincOpenLeKiwiLeader",
+    "PincOpenLeKiwiLeaderConfig",
     "SprungSO101Leader",
     "SprungSO101LeaderConfig",
 ]
