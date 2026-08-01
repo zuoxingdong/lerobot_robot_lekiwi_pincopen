@@ -31,12 +31,17 @@ How it plugs in (requires lerobot 0.6.0 or newer):
   host is launched through the wrapper module instead (same CLI, same yaml):
   ``python -m lerobot_robot_lekiwi_pincopen.lekiwi_host --config_path=...``
 
-The teleoperating/recording client side is untouched: those CLIs talk to
-``lekiwi_client``, which never touches motors.
+The laptop side is covered too, since stock lerobot cannot reach a LeKiwi from the
+record/teleoperate CLIs: ``lekiwi_client`` is never registered there, and it exposes no
+``.cameras`` for ``record()`` to size its image writer from.
 
-The package also ships an optional leader-side teleoperator,
-``--teleop.type=so101_leader_sprung`` — a stock SO-101 leader whose gripper
-trigger springs back to open when released (see ``so101_leader_sprung.py``).
+* ``--robot.type=lekiwi_pincopen_client`` — the ZMQ client, registered and reporting
+  its configured cameras (see ``lekiwi_pincopen_client.py``).
+* ``--teleop.type=lekiwi_pincopen_leader`` — one teleoperator driving both the arm
+  (sprung SO-101 leader) and the holonomic base (keyboard), so the CLIs see a single
+  device (see ``lekiwi_pincopen_leader.py``).
+* ``--teleop.type=so101_leader_sprung`` — the sprung leader on its own, for a
+  non-LeKiwi SO-101 setup (see ``so101_leader_sprung.py``).
 """
 
 from .config_lekiwi_pincopen import HEAVY_JOINTS, STS3250_JOINTS, PincOpenLeKiwiConfig
