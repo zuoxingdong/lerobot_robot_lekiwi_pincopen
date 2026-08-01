@@ -1,0 +1,104 @@
+name: Publish to PyPI
+
+# Publishing is driven by GitHub Releases: draft a release for tag `vX.Y.Z` and press
+# Publish. A tag push alone does nothing, so a mistyped tag cannot reach PyPI (uploads
+# there are permanent — a bad version can only be yanked, never replaced).
+#
+# Authentication is PyPI Trusted Publishing (OIDC), so there is no API token to store or
+# rotate. It requires a one-time setup on pypi.org (Publishing -> Add a new pending
+# publisher), which must match this file exactly:
+#
+#   PyPI Project Name: lerobot_robot_lekiwi_pincopen
+#   Owner:             zuoxingdong
+#   Repository name:   lerobot_robot_lekiwi_pincopen
+#   Workflow name:     publish.yml
+#   Environment name:  pypi
+#
+# NOTE: the distribution name keeps its underscores on purpose. lerobot discovers plugins
+# by reading the `Name` field of installed distribution metadata and matching the
+# `lerobot_robot_` prefix, then importing that exact string as a module. PyPI normalises
+# the name for its own URLs, but the uploaded metadata keeps what the build backend wrote.
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build and check distributions
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # Guard against publishing a version that does not match the release tag. Without
+      # this, a forgotten version bump uploads a duplicate and PyPI rejects it after the
+      # release is already public.
+      - name: Check the version matches the release tag
+        run: |
+          python - <<'PY'
+          import os, pathlib, tomllib
+          tag = os.environ["TAG"].removeprefix("v")
+          version = tomllib.loads(pathlib.Path("pyproject.toml").read_text())["project"]["version"]
+          if tag != version:
+              raise SystemExit(f"release tag {tag!r} != pyproject version {version!r}; bump one of them")
+          print(f"version {version} matches tag")
+          PY
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+
+      - name: Install build tooling
+        run: python -m pip install build twine
+
+      - name: Build sdist and wheel
+        run: python -m build
+
+      # Catches a README that renders badly on PyPI, and metadata PyPI would reject.
+      - name: Check the metadata renders
+        run: python -m twine check --strict dist/*
+
+      # The plugin is only discoverable if the built metadata keeps the underscored name.
+      - name: Check the distribution name survives packaging
+        run: |
+          python - <<'PY'
+          import glob, zipfile
+          wheel = glob.glob("dist/*.whl")[0]
+          with zipfile.ZipFile(wheel) as z:
+              meta = next(n for n in z.namelist() if n.endswith("METADATA"))
+              name = next(
+                  line.split(":", 1)[1].strip()
+                  for line in z.read(meta).decode().splitlines()
+                  if line.startswith("Name:")
+              )
+          if not name.startswith("lerobot_robot_"):
+              raise SystemExit(f"metadata Name is {name!r}; lerobot plugin discovery needs the lerobot_robot_ prefix")
+          print(f"metadata Name is {name}")
+          PY
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+  publish:
+    name: Publish to PyPI
+    needs: build
+    runs-on: ubuntu-latest
+    # The environment is what the trusted publisher is scoped to; it is also where you can
+    # add a required reviewer if you ever want a human gate before upload.
+    environment:
+      name: pypi
+      url: https://pypi.org/p/lerobot_robot_lekiwi_pincopen
+    permissions:
+      id-token: write # mint the OIDC token Trusted Publishing exchanges for an upload token
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+      - uses: pypa/gh-action-pypi-publish@release/v1
