@@ -30,17 +30,33 @@ def pincopen_cameras_config() -> dict[str, CameraConfig]:
     return {name: replace(cfg, fourcc="MJPG") for name, cfg in lekiwi_cameras_config().items()}
 
 
+# Which arm joints carry an STS3250 instead of the stock STS3215. Hardware
+# inventory only: this drives the motor model declared on the bus, nothing else.
+STS3250_JOINTS = ("arm_shoulder_lift", "arm_elbow_flex", "arm_wrist_flex")
+
+# Which arm joints get the heavy tuning (lower P-gain, capped acceleration).
+# That is a property of the load a joint carries, not of the servo fitted to it,
+# so the two sets are allowed to differ: arm_shoulder_pan still swings the whole
+# arm even though it now runs an STS3215.
+HEAVY_JOINTS = ("arm_shoulder_pan", "arm_shoulder_lift", "arm_elbow_flex", "arm_wrist_flex")
+
+
 @RobotConfig.register_subclass("lekiwi_pincopen")
 @dataclass
 class PincOpenLeKiwiConfig(LeKiwiConfig):
     cameras: dict[str, CameraConfig] = field(default_factory=pincopen_cameras_config)
 
+    # Servo inventory and load profile. Both are config fields so a servo swap is a
+    # yaml edit, not a code change.
+    sts3250_joints: tuple[str, ...] = STS3250_JOINTS  # joints fitted with an STS3250
+    heavy_joints: tuple[str, ...] = HEAVY_JOINTS  # joints given the heavy P-gain and acceleration
+
     # Servo tuning, applied by configure() on every connect. Lowering the P-gain on
     # the four big joints is the critical fix against jitter and servo overload
     # shutdowns; stock lerobot writes P=16 arm-wide.
     arm_p_coefficient: int = 14  # all arm joints (14: smooth, 16: jittery)
-    heavy_p_coefficient: int = 10  # the four STS3250 joints (10: smooth, 12: jittery)
-    heavy_acceleration: int = 200  # acceleration limit on the STS3250 joints
+    heavy_p_coefficient: int = 10  # the heavy joints (10: smooth, 12: jittery)
+    heavy_acceleration: int = 200  # acceleration limit on the heavy joints
     # PincOpen gripper safety params (move fast through air, back off on contact)
     gripper_acceleration: int = 200
     # NOTE: keep percent signs out of these comments; draccus feeds them to argparse

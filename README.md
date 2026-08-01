@@ -1,6 +1,6 @@
 # lerobot_robot_lekiwi_pincopen
 
-My LeKiwi runs STS3250 servos on the four big arm joints and a
+My LeKiwi runs STS3250 servos on the big arm joints and a
 [PincOpen](https://github.com/pollen-robotics/PincOpen) gripper.
 This plugin lets the **original, unmodified
 [LeRobot](https://github.com/huggingface/lerobot) (0.5.x / 0.6.x) drive that
@@ -16,7 +16,9 @@ This package is that integration as installable code.
 
 **vs the original `lekiwi` robot:**
 
-- arm joints 1-4 on **STS3250** (wrist_roll and gripper stay STS3215)
+- **STS3250** on the heavy arm joints, set by `sts3250_joints` (default: joints 2-4;
+  shoulder_pan, wrist_roll and gripper are STS3215)
+- **load-based tuning** via `heavy_joints`, independent of which servo is fitted
 - **PincOpen gripper**: fixed EPROM calibration, skipped during interactive calibration
 - **tuned servo params** written on every connect, all exposed as config fields:
   tuning is a yaml/CLI edit (`--robot.heavy_p_coefficient=10`), never a code change

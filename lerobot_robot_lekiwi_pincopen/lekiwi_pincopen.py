@@ -16,7 +16,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""The PincOpen LeKiwi robot: STS3250 arm joints, PincOpen gripper, tuned servos."""
+"""The PincOpen LeKiwi robot: STS3250 heavy arm joints, PincOpen gripper, tuned servos."""
 
 import logging
 from dataclasses import replace
@@ -29,9 +29,6 @@ from lerobot.robots.lekiwi.lekiwi import LeKiwi
 from .config_lekiwi_pincopen import PincOpenLeKiwiConfig
 
 logger = logging.getLogger(__name__)
-
-# Arm joints 1-4 are upgraded to STS3250 (wrist_roll and gripper remain STS3215).
-STS3250_JOINTS = ("arm_shoulder_pan", "arm_shoulder_lift", "arm_elbow_flex", "arm_wrist_flex")
 
 # Hardcoded PincOpen gripper calibration values (from EPROM settings).
 # The gripper's travel limits are pre-flashed to the motor's EPROM, so interactive
@@ -46,7 +43,12 @@ PINCOPEN_CALIBRATION = MotorCalibration(
 
 
 class PincOpenLeKiwi(LeKiwi):
-    """LeKiwi with STS3250 arm joints, the PincOpen gripper, and tuned servo params."""
+    """LeKiwi with STS3250 heavy arm joints, the PincOpen gripper, and tuned servo params.
+
+    Which joints are STS3250 (``sts3250_joints``) and which get the heavy tuning
+    (``heavy_joints``) are separate config fields: a joint can carry a heavy load
+    without carrying the bigger servo.
+    """
 
     config_class = PincOpenLeKiwiConfig
     name = "lekiwi_pincopen"
@@ -57,11 +59,11 @@ class PincOpenLeKiwi(LeKiwi):
             # the tuning defaults; every LeKiwiConfig field carries over.
             config = PincOpenLeKiwiConfig(**vars(config))
         super().__init__(config)
-        # Rebuild the bus with the STS3250 models. MotorsBus.__init__ precomputes
+        # Rebuild the bus with the configured STS3250 models. MotorsBus.__init__ precomputes
         # id->model lookup tables, so mutating bus.motors after the fact is not enough;
         # deriving from the stock motors dict keeps upstream's ids/norm modes.
         motors = {
-            name: replace(motor, model="sts3250") if name in STS3250_JOINTS else motor
+            name: replace(motor, model="sts3250") if name in config.sts3250_joints else motor
             for name, motor in self.bus.motors.items()
         }
         self.bus = FeetechMotorsBus(port=config.port, motors=motors, calibration=self.calibration)
@@ -135,7 +137,7 @@ class PincOpenLeKiwi(LeKiwi):
             self.bus.write("I_Coefficient", name, 0)
             self.bus.write("D_Coefficient", name, 32)
 
-        for name in STS3250_JOINTS:
+        for name in cfg.heavy_joints:
             self.bus.write("Acceleration", name, cfg.heavy_acceleration)
             self.bus.write("P_Coefficient", name, cfg.heavy_p_coefficient)
 

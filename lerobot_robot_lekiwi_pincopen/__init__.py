@@ -14,7 +14,7 @@
 
 """PincOpen LeKiwi — STS3250/PincOpen hardware customizations as a lerobot plugin.
 
-A LeKiwi variant with the arm's four big joints upgraded to STS3250 servos, a
+A LeKiwi variant with the arm's heavy joints upgraded to STS3250 servos, a
 PincOpen gripper with a fixed EPROM calibration, and tuned servo parameters —
 packaged out-of-tree, so a stock lerobot install drives the hardware with zero
 source edits.
@@ -39,12 +39,13 @@ The package also ships an optional leader-side teleoperator,
 trigger springs back to open when released (see ``so101_leader_sprung.py``).
 """
 
-from .config_lekiwi_pincopen import PincOpenLeKiwiConfig
+from .config_lekiwi_pincopen import HEAVY_JOINTS, STS3250_JOINTS, PincOpenLeKiwiConfig
 from .config_so101_leader_sprung import SprungSO101LeaderConfig
-from .lekiwi_pincopen import PINCOPEN_CALIBRATION, STS3250_JOINTS, PincOpenLeKiwi
+from .lekiwi_pincopen import PINCOPEN_CALIBRATION, PincOpenLeKiwi
 from .so101_leader_sprung import SprungSO101Leader
 
 __all__ = [
+    "HEAVY_JOINTS",
     "PincOpenLeKiwi",
     "PincOpenLeKiwiConfig",
     "PINCOPEN_CALIBRATION",
