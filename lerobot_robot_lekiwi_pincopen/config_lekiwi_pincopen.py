@@ -32,12 +32,15 @@ def pincopen_cameras_config() -> dict[str, CameraConfig]:
 
 # Which arm joints carry an STS3250 instead of the stock STS3215. Hardware
 # inventory only: this drives the motor model declared on the bus, nothing else.
-STS3250_JOINTS = ("arm_shoulder_lift", "arm_elbow_flex", "arm_wrist_flex")
+# 2026-08-14: shoulder_pan carries an STS3250 again (the interim STS3215 that made
+# the two sets diverge is retired), so the four load-bearing joints are uniform.
+STS3250_JOINTS = ("arm_shoulder_pan", "arm_shoulder_lift", "arm_elbow_flex", "arm_wrist_flex")
 
 # Which arm joints get the heavy tuning (lower P-gain, capped acceleration).
-# That is a property of the load a joint carries, not of the servo fitted to it,
-# so the two sets are allowed to differ: arm_shoulder_pan still swings the whole
-# arm even though it now runs an STS3215.
+# Kept as a separate set from the inventory above: the heavy tuning tracks the
+# servo model fitted to a slot (low P tames the STS3250's authority), so if a
+# slot ever runs a weaker STS3215 again it should leave this set but keep its
+# place in the arm.
 HEAVY_JOINTS = ("arm_shoulder_pan", "arm_shoulder_lift", "arm_elbow_flex", "arm_wrist_flex")
 
 

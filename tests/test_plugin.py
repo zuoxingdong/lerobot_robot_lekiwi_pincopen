@@ -56,14 +56,15 @@ def test_bus_rebuilt_with_sts3250_models():
     models = {name: motor.model for name, motor in robot.bus.motors.items()}
     for joint in STS3250_JOINTS:
         assert models[joint] == "sts3250"
-    # shoulder_pan was downgraded to an STS3215; it stays in HEAVY_JOINTS regardless.
-    assert models["arm_shoulder_pan"] == "sts3215"
+    # 2026-08-14: shoulder_pan carries an STS3250 again, so the default inventory
+    # covers all four load-bearing joints; it stays in HEAVY_JOINTS as well.
+    assert models["arm_shoulder_pan"] == "sts3250"
     assert "arm_shoulder_pan" in HEAVY_JOINTS
     assert models["arm_wrist_roll"] == "sts3215"
     assert models["arm_gripper"] == "sts3215"
     assert all(models[m] == "sts3215" for m in robot.base_motors)
     # The precomputed lookup tables must reflect the rebuild (why the bus is re-created).
-    assert robot.bus._id_to_model_dict[1] == "sts3215"
+    assert robot.bus._id_to_model_dict[1] == "sts3250"
     assert robot.bus._id_to_model_dict[2] == "sts3250"
     assert robot.bus._id_to_model_dict[5] == "sts3215"
 
