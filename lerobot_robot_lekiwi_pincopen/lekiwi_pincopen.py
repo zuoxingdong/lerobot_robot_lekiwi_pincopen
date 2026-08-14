@@ -135,11 +135,12 @@ class PincOpenLeKiwi(LeKiwi):
             self.bus.write("P_Coefficient", name, cfg.arm_p_coefficient)
             # Set I_Coefficient and D_Coefficient to default value 0 and 32
             self.bus.write("I_Coefficient", name, 0)
-            self.bus.write("D_Coefficient", name, 32)
+            self.bus.write("D_Coefficient", name, cfg.arm_d_coefficient)
 
         for name in cfg.heavy_joints:
             self.bus.write("Acceleration", name, cfg.heavy_acceleration)
             self.bus.write("P_Coefficient", name, cfg.heavy_p_coefficient)
+            self.bus.write("D_Coefficient", name, cfg.heavy_d_coefficient)
 
         self.bus.write("Acceleration", "arm_gripper", cfg.gripper_acceleration)
         self.bus.write("Overload_Torque", "arm_gripper", cfg.gripper_overload_torque)
@@ -149,4 +150,53 @@ class PincOpenLeKiwi(LeKiwi):
         for name in self.base_motors:
             self.bus.write("Operating_Mode", name, OperatingMode.VELOCITY.value)
 
-        self.bus.enable_torque()
+        # Per-joint overrides last, so they beat both the arm-wide and the heavy pass.
+        for name, p_coefficient in cfg.joint_p_overrides.items():
+            self.bus.write("P_Coefficient", name, p_coefficient)
+        for name, d_coefficient in cfg.joint_d_overrides.items():
+            self.bus.write("D_Coefficient", name, d_coefficient)
+        for name, acceleration in cfg.joint_acceleration_overrides.items():
+            self.bus.write("Acceleration", name, acceleration)
+        for name, torque_limit in cfg.joint_torque_limits.items():
+            self.bus.write("Torque_Limit", name, torque_limit)
+
+        self.bus.enable_torque(num_retry=cfg.num_write_retries)
+        self._print_tuning()
+
+    def _print_tuning(self) -> None:
+        """Print the tuning the servos actually hold, once per connect.
+
+        Read back rather than echoed from config: the point is to catch the case where a
+        value did not land. Uses print() because the host never installs a logging handler,
+        so logging.info would be dropped and never reach the host log pane. Best effort:
+        a diagnostic must never be able to fail a connect.
+        """
+        try:
+            p_vals = self.bus.sync_read("P_Coefficient", self.arm_motors, normalize=False)
+            d_vals = self.bus.sync_read("D_Coefficient", self.arm_motors, normalize=False)
+            a_vals = self.bus.sync_read("Acceleration", self.arm_motors, normalize=False)
+            t_vals = self.bus.sync_read("Torque_Limit", self.arm_motors, normalize=False)
+        except Exception as exc:
+            print(f"PincOpen tuning: could not read back ({exc})", flush=True)
+            return
+
+        print("PincOpen servo tuning (read back from the bus)", flush=True)
+        print("  id  joint            servo     P     D     Accel  D/P    Torque", flush=True)
+        for name in self.arm_motors:
+            motor = self.bus.motors[name]
+            p_val, d_val = p_vals[name], d_vals[name]
+            ratio = f"{d_val / p_val:.2f}" if p_val else "-"
+            print(
+                "  %-3d %-16s %-9s %-5s %-5s %-6s %-6s %s"
+                % (
+                    motor.id,
+                    name.replace("arm_", ""),
+                    motor.model,
+                    p_val,
+                    d_val,
+                    a_vals[name],
+                    ratio,
+                    t_vals[name],
+                ),
+                flush=True,
+            )
