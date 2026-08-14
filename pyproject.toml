@@ -9,7 +9,7 @@ build-backend = "setuptools.build_meta"
 # (setuptools preserves the underscore Name in metadata; a backend that normalizes
 # it to hyphens would break discovery.)
 name = "lerobot_robot_lekiwi_pincopen"
-version = "0.1.0"
+version = "0.1.1"
 description = "PincOpen LeKiwi (STS3250 heavy arm joints + PincOpen gripper) as a LeRobot third-party robot plugin"
 readme = "README.md"
 license = { text = "Apache-2.0" }
