@@ -51,12 +51,44 @@ class PincOpenLeKiwiConfig(LeKiwiConfig):
     sts3250_joints: tuple[str, ...] = STS3250_JOINTS  # joints fitted with an STS3250
     heavy_joints: tuple[str, ...] = HEAVY_JOINTS  # joints given the heavy P-gain and acceleration
 
+    # Extra attempts for the torque-enable at the end of configure(). That write is the
+    # first thing every joint must acknowledge, and stock lerobot retries it zero times, so
+    # one dropped Feetech status packet aborts the whole launch. (disconnect already retries
+    # its disable_torque 5x, so the connect path was the odd one out.)
+    num_write_retries: int = 2
+
     # Servo tuning, applied by configure() on every connect. Lowering the P-gain on
     # the four big joints is the critical fix against jitter and servo overload
     # shutdowns; stock lerobot writes P=16 arm-wide.
     arm_p_coefficient: int = 14  # all arm joints (14: smooth, 16: jittery)
     heavy_p_coefficient: int = 10  # the heavy joints (10: smooth, 12: jittery)
     heavy_acceleration: int = 200  # acceleration limit on the heavy joints
+    # Derivative gain, mirroring the P structure above. Damping opposes velocity, so it
+    # suppresses the hunting that a loaded joint falls into at high gain; raising D and P
+    # together keeps the damping ratio while buying back stiffness. Too much D amplifies
+    # encoder quantisation into an audible buzz, which is the signal you have overshot.
+    # I is deliberately left at 0 and not exposed: on a joint that saturates under gravity
+    # the integral term winds up and holds maximum current, which is the condition that
+    # disturbs the servo bus.
+    arm_d_coefficient: int = 32  # all arm joints
+    heavy_d_coefficient: int = 32  # the heavy joints, overrides the arm-wide value
+    # Per-joint last word on the two knobs above, applied after the arm-wide and heavy
+    # passes so they win. Use when one joint needs a value that neither set describes,
+    # e.g. a joint that carries a heavy load but no longer carries the bigger servo.
+    #   joint_p_overrides: {arm_shoulder_pan: 12}
+    #   joint_acceleration_overrides: {arm_shoulder_pan: 200}
+    # NOTE: Acceleration (reg 41) is a RAM register, so it resets to 0 on power cycle and
+    # is only in effect while the robot has been configured since it last powered up.
+    joint_p_overrides: dict[str, int] = field(default_factory=dict)
+    joint_d_overrides: dict[str, int] = field(default_factory=dict)
+    joint_acceleration_overrides: dict[str, int] = field(default_factory=dict)
+    # Hard ceiling on commanded torque, 0-1000 = 0-100 percent of Max_Torque_Limit. The
+    # servos ship at 1000, i.e. uncapped, so a joint that saturates holding a load out at
+    # full reach pulls whatever current it can, and that spike is what disturbs the bus.
+    # Capping trades holding force for a bounded draw: the arm sags sooner instead of the
+    # session dying. Torque_Limit is a RAM register, so configure() rewrites it each connect.
+    joint_torque_limits: dict[str, int] = field(default_factory=dict)
+
     # PincOpen gripper safety params (move fast through air, back off on contact)
     gripper_acceleration: int = 200
     # NOTE: keep percent signs out of these comments; draccus feeds them to argparse
