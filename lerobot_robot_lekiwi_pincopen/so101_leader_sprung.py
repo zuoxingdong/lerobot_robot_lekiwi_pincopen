@@ -51,6 +51,29 @@ class SprungSO101Leader(SOLeader):
         self.bus.write("P_Coefficient", "gripper", 8, normalize=False)
         self.bus.write("Acceleration", "gripper", 0, normalize=False)  # 0 = fastest ramp
         self.bus.write("Torque_Limit", "gripper", 75, normalize=False)
+        self._arm_gripper_spring()
+
+    def _arm_gripper_spring(self) -> None:
+        """(Re-)arm the sprung trigger: gripper torque on, goal = fully open.
+
+        RAM-only writes, so safe to repeat on every torque toggle; the P gain,
+        acceleration and torque cap from configure() survive a torque-off. Skipped
+        when disconnected, since the goal write is normalized and so needs a
+        calibrated bus.
+        """
+        if not self.is_connected:
+            return
         self.bus.enable_torque("gripper")
         self.bus.write("Goal_Position", "gripper", 100.0)  # normalized: fully open
         logger.info("%s sprung gripper armed", self)
+
+    def disable_torque(self) -> None:
+        """Release the arm joints but keep the gripper spring armed.
+
+        DAgger calls this to hand the leader over, and the stock bus-wide torque-off
+        would leave the trigger floppy for exactly the phase the human teleoperates.
+        Re-arming targets fully open, so take over mid-grasp with the trigger already
+        squeezed or the follower gripper will ease open.
+        """
+        super().disable_torque()
+        self._arm_gripper_spring()

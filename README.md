@@ -6,7 +6,7 @@
 My LeKiwi runs STS3250 servos on the big arm joints and a
 [PincOpen](https://github.com/pollen-robotics/PincOpen) gripper.
 This plugin lets the **original, unmodified
-[LeRobot](https://github.com/huggingface/lerobot) (0.6.0 or newer) drive that
+[LeRobot](https://github.com/huggingface/lerobot) (0.6.1 or newer) drive that
 hardware**, zero source edits.
 
 I wrote up the hardware build in
@@ -25,9 +25,12 @@ This package is that integration as installable code.
 - **PincOpen gripper**: fixed EPROM calibration, skipped during interactive calibration
 - **tuned servo params** written on every connect, all exposed as config fields:
   tuning is a yaml/CLI edit (`--robot.heavy_p_coefficient=10`), never a code change
-- **camera capture pinned to MJPG** — the stock default sets no `fourcc`, so
-  OpenCV auto-negotiates uncompressed YUYV (~147 Mbps/camera) and saturates the
-  Pi's USB2 bus; MJPG is ~16× lighter for identical frames
+- **camera capture pinned to MJPG** — without a `fourcc`, OpenCV auto-negotiates
+  uncompressed YUYV (~147 Mbps/camera) and saturates the Pi's USB2 bus; MJPG is
+  ~16× lighter for identical frames. Upstream has set MJPG on the LeKiwi defaults
+  since 0.6.1, so this now re-asserts rather than fixes it
+- **an opt-in per-tick motion cap** for `max_relative_target`, see
+  [Safety](#safety-bounding-per-tick-motion)
 
 ## Install
 
@@ -111,8 +114,11 @@ Notes:
 * The keyboard is best effort. `pynput` cannot capture keys on Wayland or on a
   headless machine; there the base holds still and the arm stays teleoperable
   rather than the session failing.
-* Both are proposed upstream in
-  [huggingface/lerobot#3741](https://github.com/huggingface/lerobot/pull/3741).
+* Both were proposed upstream in
+  [huggingface/lerobot#3741](https://github.com/huggingface/lerobot/pull/3741). Part of it
+  landed: 0.6.1's `lerobot-record` has a multi-teleop branch, but it is gated on
+  `robot.name == "lekiwi_client"` and `lerobot-teleoperate` still has none, so both types
+  here are still needed.
 
 ## Optional: sprung gripper trigger for the SO-101 leader
 
@@ -144,6 +150,59 @@ Notes:
 * Hand-tuned on real hardware; holding the trigger fully squeezed for 8
   continuous minutes raised the servo temperature by 1 °C, and the factory
   overload protection stays armed above the configured torque cap.
+
+## Safety: bounding per-tick motion
+
+LeRobot's `max_relative_target` caps how far a single control tick may command a joint
+from where it currently is, so one bad action — a policy that emits garbage, an
+out-of-distribution observation, a replayed action from the wrong dataset — is spread
+over several ticks instead of arriving as a slam. It is inherited from `LeKiwiConfig` and
+defaults to `None`; this package exports a vetted set of values to fill it with:
+
+```python
+from lerobot_robot_lekiwi_pincopen import PINCOPEN_MAX_RELATIVE_TARGET
+```
+
+The clamp runs in `LeKiwi.send_action`, which executes on the robot, so it goes in the
+**host** yaml — setting it on the client side does nothing:
+
+```yaml
+robot:
+  max_relative_target:
+    arm_shoulder_pan.pos: 40.0
+    arm_shoulder_lift.pos: 40.0
+    arm_elbow_flex.pos: 40.0
+    arm_wrist_flex.pos: 40.0
+    arm_wrist_roll.pos: 40.0
+    arm_gripper.pos: 100.0
+```
+
+> [!TIP]
+> The cap is unusable on lerobot 0.6.1 and earlier: `LeKiwi.send_action` pairs `.pos`-suffixed
+> goal keys against a `Present_Position` read keyed by bare motor name, so it raises `KeyError`
+> the moment the field is set. The one-line fix is
+> [huggingface/lerobot#4281](https://github.com/huggingface/lerobot/pull/4281), merged to `main`
+> but not yet in a release — until the next one ships, cherry-pick it into your lerobot install
+> (or run from `main`) before turning this on.
+
+Left opt-in rather than defaulted on, because enabling it adds a `Present_Position` read to
+every `send_action`, on a bus that already needs `num_read_retries` when several joints move
+at once. Notes on the values:
+
+* Units follow each joint's norm mode: degrees for the five body joints (`use_degrees=True`),
+  percent of travel for the gripper.
+* One value across the body joints on purpose — a backstop against a command no human or
+  policy should issue, not a per-joint tuning. For load-dependent protection use
+  `joint_torque_limits`, which bounds how hard a joint pulls rather than how far it is asked
+  to jump.
+* The gripper is effectively uncapped, because the sprung trigger's release is a one-tick
+  full-range move by design.
+* Every arm joint must appear or `ensure_safe_goal_position` raises. Note the keys carry the
+  `.pos` suffix here, unlike SO-101 follower configs.
+* To fit another setup, or after retuning P-gains or changing fps, take
+  `|action - observation.state|` per joint across a recorded dataset and allow roughly twice
+  its p99.9. If the host starts logging `Relative goal position magnitude had to be clamped`
+  during normal work, the cap is too tight.
 
 ## Tuning
 

@@ -9,12 +9,12 @@ build-backend = "setuptools.build_meta"
 # (setuptools preserves the underscore Name in metadata; a backend that normalizes
 # it to hyphens would break discovery.)
 name = "lerobot_robot_lekiwi_pincopen"
-version = "0.1.1"
+version = "0.1.2"
 description = "PincOpen LeKiwi (STS3250 heavy arm joints + PincOpen gripper) as a LeRobot third-party robot plugin"
 readme = "README.md"
 license = { text = "Apache-2.0" }
 authors = [{ name = "Xingdong Zuo" }]
-# lerobot has required 3.12 since 0.5.0, so with a >=0.6.0 floor this package can never
+# lerobot has required 3.12 since 0.5.0, so with a >=0.6.1 floor this package can never
 # install on 3.10/3.11. Claiming otherwise only turns a clear "requires Python >=3.12"
 # into a confusing resolver failure about lerobot.
 requires-python = ">=3.12"
@@ -28,10 +28,11 @@ classifiers = [
     "Programming Language :: Python :: 3.13",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
-# Requires lerobot 0.6.0 or newer; the lekiwi extra brings the servo SDK the bus needs
-# plus pyzmq for the host. In an env that already carries an (editable) lerobot clone
-# this resolves as already-satisfied.
-dependencies = ["lerobot[lekiwi]>=0.6.0"]
+# Requires lerobot 0.6.1 or newer: `lerobot-rollout` only learned to drive a LeKiwi in
+# 0.6.1, and the DAgger-shaped flows this package supports run through it. The lekiwi extra
+# brings the servo SDK the bus needs plus pyzmq for the host. In an env that already carries
+# an (editable) lerobot clone this resolves as already-satisfied.
+dependencies = ["lerobot[lekiwi]>=0.6.1"]
 
 [project.optional-dependencies]
 dev = [

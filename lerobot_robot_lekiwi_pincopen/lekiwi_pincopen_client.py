@@ -20,8 +20,10 @@ missing), so ``--robot.type=lekiwi_client`` is not a selectable choice there. Re
 this subclass through the plugin makes the client reachable, and fixes the crash below,
 without patching lerobot.
 
-Both are fixed upstream in huggingface/lerobot#3741; this keeps the plugin working on
-stock lerobot until that lands.
+Partly addressed upstream by huggingface/lerobot#3741: as of 0.6.1 ``lerobot-record`` has a
+multi-teleop branch, but it is gated on ``robot.name == "lekiwi_client"`` (so this subclass
+would not match it), and ``LeKiwiClient`` still exposes no ``.cameras``. Both workarounds here
+are still required.
 """
 
 from lerobot.cameras import CameraConfig
