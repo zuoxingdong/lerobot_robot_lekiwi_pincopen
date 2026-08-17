@@ -16,18 +16,25 @@ import pytest
 
 pytest.importorskip("lerobot")
 
+from lerobot.common.control_utils import teleop_supports_feedback
 from lerobot.robots import RobotConfig
 from lerobot.robots.lekiwi.config_lekiwi import LeKiwiConfig
 from lerobot.robots.lekiwi.lekiwi_host import LeKiwiServerConfig
 from lerobot.robots.utils import make_robot_from_config
+from lerobot.teleoperators.so_leader.config_so_leader import SOLeaderConfig
 from lerobot.utils.import_utils import register_third_party_plugins
 
 from lerobot_robot_lekiwi_pincopen import (
     HEAVY_JOINTS,
     PINCOPEN_CALIBRATION,
+    PINCOPEN_MAX_RELATIVE_TARGET,
     STS3250_JOINTS,
     PincOpenLeKiwi,
     PincOpenLeKiwiConfig,
+    PincOpenLeKiwiLeader,
+    PincOpenLeKiwiLeaderConfig,
+    SprungSO101Leader,
+    SprungSO101LeaderConfig,
 )
 from lerobot_robot_lekiwi_pincopen.lekiwi_host import PincOpenLeKiwiServerConfig
 
@@ -118,3 +125,95 @@ def test_host_server_config_roundtrip(tmp_path):
     )
     assert type(stock) is LeKiwiServerConfig  # exact type: the wrapped main won't re-parse
     assert stock.robot is cfg.robot
+
+
+def test_max_relative_target_constant_matches_the_arm_action_keys():
+    robot = PincOpenLeKiwi(PincOpenLeKiwiConfig(id="unit-test", port="/dev/null"))
+    # ensure_safe_goal_position compares the two key sets exactly, so a missing or stale
+    # joint turns the safety cap into a ValueError on the first send_action rather than
+    # into a looser clamp. Keys carry the `.pos` suffix here, unlike SOFollower's.
+    assert set(PINCOPEN_MAX_RELATIVE_TARGET) == {k for k in robot.action_features if k.endswith(".pos")}
+    # Shipped opt-in: enabling it costs a Present_Position read per tick.
+    assert PincOpenLeKiwiConfig().max_relative_target is None
+
+
+def _build_leader() -> PincOpenLeKiwiLeader:
+    return PincOpenLeKiwiLeader(
+        PincOpenLeKiwiLeaderConfig(id="unit-test", arm_config=SOLeaderConfig(port="/dev/null"))
+    )
+
+
+def test_leader_is_actuated_with_arm_prefixed_feedback():
+    leader = _build_leader()
+    # DAgger's smooth leader<-follower handover only engages for actuated teleops.
+    assert teleop_supports_feedback(leader)
+    # Feedback keys must live in the same `arm_`-prefixed space as action_features
+    # (= LeKiwi's robot action key space), or teleop_smooth_move_to silently no-ops.
+    assert leader.feedback_features == {
+        f"arm_{key}": value for key, value in leader.arm.feedback_features.items()
+    }
+    assert set(leader.feedback_features) < set(leader.action_features)  # base keys are action-only
+
+
+def test_leader_delegates_feedback_and_torque_to_arm():
+    class ArmStub:
+        is_connected = True  # the leader's is_connected reads through to the arm
+
+        def __init__(self):
+            self.feedback = None
+            self.torque_calls = []
+
+        def send_feedback(self, feedback):
+            self.feedback = feedback
+
+        def enable_torque(self):
+            self.torque_calls.append("on")
+
+        def disable_torque(self):
+            self.torque_calls.append("off")
+
+    leader = _build_leader()
+    leader.arm = ArmStub()
+
+    # Interpolated targets arrive in robot action key space; the base `*.vel`
+    # keys have no actuator and must be dropped, the arm keys unprefixed.
+    leader.send_feedback({"arm_shoulder_pan.pos": 1.0, "arm_gripper.pos": 50.0, "x.vel": 0.1})
+    assert leader.arm.feedback == {"shoulder_pan.pos": 1.0, "gripper.pos": 50.0}
+
+    leader.disable_torque()
+    leader.enable_torque()
+    assert leader.arm.torque_calls == ["off", "on"]
+
+
+def test_sprung_disable_torque_keeps_gripper_spring():
+    arm = SprungSO101Leader(SprungSO101LeaderConfig(id="unit-test", port="/dev/null"))
+
+    calls = []
+
+    class BusStub:
+        is_connected = True  # SOLeader.is_connected reads through to the bus
+
+        def disable_torque(self, *args):
+            calls.append(("disable", args))
+
+        def enable_torque(self, *args):
+            calls.append(("enable", args))
+
+        def write(self, register, motor, value, **kwargs):
+            calls.append(("write", register, motor, value))
+
+    arm.bus = BusStub()
+    arm.disable_torque()
+
+    # Bus-wide release first, then the spring is immediately re-armed so the
+    # trigger keeps resisting and springing back while the human teleoperates.
+    assert calls[0] == ("disable", ())
+    assert calls[1] == ("enable", ("gripper",))
+    assert calls[2] == ("write", "Goal_Position", "gripper", 100.0)
+
+    # Disconnected, the re-arm is skipped: its goal write is normalized, so it
+    # needs a calibrated bus. The bus-wide release still goes through.
+    calls.clear()
+    arm.bus.is_connected = False
+    arm.disable_torque()
+    assert calls == [("disable", ())]

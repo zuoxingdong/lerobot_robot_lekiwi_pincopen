@@ -20,8 +20,10 @@ holonomic base. Stock ``lerobot-teleoperate`` has no way to express that, and wh
 so it is unreachable. Composing both devices behind one teleoperator (the way
 ``bi_so_leader`` composes two arms) means the CLIs see one ordinary ``Teleoperator``.
 
-Proposed upstream in huggingface/lerobot#3741; this ships it for the plugin's users now, with
-the sprung SO-101 leader instead of the stock one.
+Proposed upstream in huggingface/lerobot#3741. As of 0.6.1 ``lerobot-teleoperate`` still carries
+the "if more robots require multiple teleoperators (like lekiwi)" TODO rather than a composite,
+so this remains the way to drive both devices from one CLI — here with the sprung SO-101 leader
+instead of the stock one.
 """
 
 import logging
@@ -82,7 +84,14 @@ class PincOpenLeKiwiLeader(Teleoperator):
 
     @cached_property
     def feedback_features(self) -> dict[str, type]:
-        return {}
+        """Arm joints the leader can be driven to, in LeKiwi's robot action key space.
+
+        Non-empty features plus the torque toggles below mark this teleop as actuated,
+        which is what makes DAgger's handover drive the leader to the follower rather
+        than the follower to the leader. The ``arm_`` prefix has to match
+        ``action_features`` or that handover silently no-ops.
+        """
+        return {f"arm_{key}": value for key, value in self.arm.feedback_features.items()}
 
     @property
     def is_connected(self) -> bool:
@@ -156,8 +165,18 @@ class PincOpenLeKiwiLeader(Teleoperator):
         action.update(self._base_action())
         return action
 
+    @check_if_not_connected
     def send_feedback(self, feedback: dict[str, Any]) -> None:
-        pass
+        # Base `*.vel` keys fall through unactuated; only arm joints can be driven.
+        self.arm.send_feedback(
+            {key.removeprefix("arm_"): value for key, value in feedback.items() if key.startswith("arm_")}
+        )
+
+    def enable_torque(self) -> None:
+        self.arm.enable_torque()
+
+    def disable_torque(self) -> None:
+        self.arm.disable_torque()
 
     def disconnect(self) -> None:
         self.arm.disconnect()

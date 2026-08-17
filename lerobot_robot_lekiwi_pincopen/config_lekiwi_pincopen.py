@@ -22,11 +22,17 @@ from lerobot.robots.lekiwi.config_lekiwi import LeKiwiConfig, lekiwi_cameras_con
 
 
 def pincopen_cameras_config() -> dict[str, CameraConfig]:
-    # Pin MJPG on the inherited LeKiwi defaults. Without a fourcc, OpenCV
-    # auto-negotiates uncompressed YUYV (~147 Mbps/camera on the Pi's shared
-    # USB2 bus) when the camera offers it, which silently caps the frame rate.
-    # (Upstream fix proposed in huggingface/lerobot; this keeps the plugin
-    # correct on stock lerobot until then.)
+    """The inherited LeKiwi camera defaults, with MJPG pinned on every entry.
+
+    Without a fourcc, OpenCV takes the camera's first-advertised format — uncompressed
+    YUYV at ~147 Mbps each, enough for three cameras to saturate the Pi's shared USB2 bus.
+    That fails as silently dropped frames rather than an error, so it stays pinned here
+    even though lerobot has set MJPG in ``lekiwi_cameras_config`` since 0.6.1.
+
+    This guards the defaults only: a ``cameras:`` block in yaml replaces this factory
+    wholesale and has to pin ``fourcc`` itself. The WiFi link is unaffected either way,
+    since ``lekiwi_host`` JPEG-encodes every frame before publishing it over ZMQ.
+    """
     return {name: replace(cfg, fourcc="MJPG") for name, cfg in lekiwi_cameras_config().items()}
 
 
@@ -42,6 +48,32 @@ STS3250_JOINTS = ("arm_shoulder_pan", "arm_shoulder_lift", "arm_elbow_flex", "ar
 # slot ever runs a weaker STS3215 again it should leave this set but keep its
 # place in the arm.
 HEAVY_JOINTS = ("arm_shoulder_pan", "arm_shoulder_lift", "arm_elbow_flex", "arm_wrist_flex")
+
+# A vetted per-joint ceiling on |goal - present| for the inherited `max_relative_target`,
+# which bounds how far one tick may command a joint from where it currently is. Left opt-in
+# (the field defaults to None) because enabling it adds a Present_Position read to every
+# send_action, on a bus that already needs `num_read_retries` when several joints move at
+# once. Turn it on from the HOST yaml, where LeKiwi.send_action runs:
+#   robot:
+#     max_relative_target: {arm_shoulder_pan.pos: 40.0, ...}
+#
+# Units follow each joint's norm mode: degrees for the five body joints (use_degrees=True),
+# percent of travel for the gripper. One value across the body joints on purpose: this is a
+# backstop against a command no human or policy should issue, not a per-joint tuning, and it
+# sits above every per-tick delta seen in ordinary teleoperation and leader takeovers so it
+# should never fire in normal use. Load-dependent protection belongs in `joint_torque_limits`,
+# which caps how hard a joint pulls rather than how far it is asked to jump. Raise this if the
+# host starts logging "Relative goal position magnitude had to be clamped" during normal work.
+PINCOPEN_MAX_RELATIVE_TARGET = {
+    "arm_shoulder_pan.pos": 40.0,
+    "arm_shoulder_lift.pos": 40.0,
+    "arm_elbow_flex.pos": 40.0,
+    "arm_wrist_flex.pos": 40.0,
+    "arm_wrist_roll.pos": 40.0,
+    # Full travel, i.e. no effective cap: the sprung trigger's release is a one-tick
+    # full-range move by design, and clamping it would soften the spring.
+    "arm_gripper.pos": 100.0,
+}
 
 
 @RobotConfig.register_subclass("lekiwi_pincopen")
