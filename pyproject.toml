@@ -32,7 +32,13 @@ classifiers = [
 # 0.6.1, and the DAgger-shaped flows this package supports run through it. The lekiwi extra
 # brings the servo SDK the bus needs plus pyzmq for the host. In an env that already carries
 # an (editable) lerobot clone this resolves as already-satisfied.
-dependencies = ["lerobot[lekiwi]>=0.6.1"]
+#
+# pynput-dep is NOT part of the lekiwi extra, but `PincOpenLeKiwiLeader` constructs a
+# `KeyboardTeleop` for the base, and that constructor calls `require_package("pynput")` and
+# raises without it. The keyboard degrades gracefully when pynput is *installed but unable to
+# capture* (Wayland, headless) — never when it is missing outright, so it has to be a hard
+# dependency here rather than something the leader tries to work around.
+dependencies = ["lerobot[lekiwi,pynput-dep]>=0.6.1"]
 
 [project.optional-dependencies]
 dev = [
